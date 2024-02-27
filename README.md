@@ -34,6 +34,7 @@ Some of the benefits of msgraph-py are:
 #### msgraph.devices
 - `get_device()`
 - `delete_device()`
+- `list_owned_devices()`
 
 #### msgraph.mail
 - `send_mail()`
