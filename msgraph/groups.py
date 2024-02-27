@@ -105,7 +105,7 @@ def list_group_members(
     orderby: Union[list, str] = None,
     top: int = None,
     all: bool = False,
-) -> Union[list[dict], dict]:
+) -> list[dict]:
     """
     Returns a list of group members from the Microsoft Graph API.
     The parameters select, filter, search, and orderby use OData queries:
