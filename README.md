@@ -16,7 +16,7 @@ Some of the benefits of msgraph-py are:
 
 ### List of available functions
 
-#### msgraph.identity
+#### Identity
 - `get_user()`
 - `get_user_risk()`
 - `revoke_refresh_tokens()`
@@ -25,18 +25,19 @@ Some of the benefits of msgraph-py are:
 - `reset_strong_auth()`
 - `get_signin()`
 
-#### msgraph.groups
+#### Groups
 - `get_group()`
 - `list_group_members()`
 - `add_group_member()`
 - `remove_group_member()`
 
-#### msgraph.devices
+#### Devices
 - `get_device()`
 - `delete_device()`
 - `list_owned_devices()`
+- `get_laps_password()`
 
-#### msgraph.mail
+#### Mail
 - `send_mail()`
 
 ## Getting Started

@@ -1,4 +1,5 @@
 import logging
+from base64 import b64decode
 from typing import Union
 from urllib.parse import quote_plus, urljoin
 
@@ -212,3 +213,53 @@ def list_owned_devices(
     logger.info(f"Received {len(data)} objects ({total_seconds_str})")
 
     return data
+
+
+def get_laps_password(device_id: str) -> Union[str, None]:
+    """
+    Returns a string with the current decoded LAPS password for an
+    Intune device from the Microsoft Graph API. Returns None if the
+    response is empty (no LAPS password).
+
+    Requires admin consent for "DeviceLocalCredential.Read.All" app
+    permissions in the client.
+
+    API documentation:
+    https://learn.microsoft.com/en-us/graph/api/resources/devicelocalcredentialinfo
+    https://learn.microsoft.com/en-us/graph/api/devicelocalcredentialinfo-get
+
+    """
+
+    BASE_URL = "https://graph.microsoft.com/v1.0/directory/deviceLocalCredentials/{}"
+
+    url = BASE_URL.format(quote_plus(device_id))
+    headers = {"Authorization": f"Bearer {get_token()}"}
+    params = {"$select": "credentials"}
+
+    logger.info(f"Getting LAPS password for {device_id} ..")
+
+    response = requests.get(url, headers=headers, params=params)
+
+    if response.status_code != 200:
+        error_message = "Request failed ({} {}) - {}".format(
+            response.status_code,
+            response.reason,
+            response.json().get("error", {}).get("message"),
+        )
+        logger.error(error_message)
+        raise ConnectionError(error_message)
+
+    seconds_str = "{:.1f} s".format(response.elapsed.total_seconds())
+
+    if "application/json" not in response.headers.get("Content-Type", ""):
+        logger.warning(f"Device {device_id} has no LAPS passwords ({seconds_str})")
+        return None
+
+    data = response.json()["credentials"]
+
+    encoded_pwd = data[0].get("passwordBase64", "")
+    decoded_pwd = b64decode(encoded_pwd).decode("utf-8")
+
+    logger.info(f"Received {len(data)} objects ({seconds_str})")
+
+    return decoded_pwd

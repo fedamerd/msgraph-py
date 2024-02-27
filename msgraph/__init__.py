@@ -3,6 +3,7 @@ import logging
 from .devices import (  # noqa: F401
     delete_device,
     get_device,
+    get_laps_password,
     list_owned_devices,
 )
 from .groups import (  # noqa: F401
