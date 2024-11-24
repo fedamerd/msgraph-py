@@ -2,9 +2,7 @@ import logging
 from typing import Union
 from urllib.parse import quote_plus, urljoin
 
-import requests
-
-from .core import ensure_list, get_token
+from .core import ensure_list, filter_none, get_http_client, get_token
 
 logger = logging.getLogger(__name__)
 
@@ -54,20 +52,24 @@ def get_user(
         "$top": top if top is not None else (MAX_PAGE_SIZE if all else None),
         "$count": "true" if filter or search or orderby else None,
     }
+    headers = filter_none(headers)
+    params = filter_none(params)
 
     data = []
     count = -1
     total_seconds = 0.0
     logger.info("Getting users ..")
 
+    client = get_http_client()
+
     while True:
-        response = requests.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:
             error_message = "Request failed ({} {}) - {}".format(
                 response.status_code,
-                response.reason,
+                response.reason_phrase,
                 response.json().get("error", {}).get("message"),
             )
             logger.error(error_message)
@@ -113,12 +115,13 @@ def revoke_refresh_tokens(user_id: str) -> bool:
 
     logger.info(f"Revoking refresh tokens for {user_id} ..")
 
-    response = requests.post(url, headers=headers)
+    client = get_http_client()
+    response = client.post(url, headers=headers)
 
     if response.status_code != 200:
         error_message = "Request failed ({} {}) - {}".format(
             response.status_code,
-            response.reason,
+            response.reason_phrase,
             response.json().get("error", {}).get("message"),
         )
         logger.error(error_message)
@@ -148,12 +151,13 @@ def list_auth_methods(user_id: str) -> list[dict]:
 
     logger.info(f"Getting authentication methods for {user_id} ..")
 
-    response = requests.get(url, headers=headers)
+    client = get_http_client()
+    response = client.get(url, headers=headers)
 
     if response.status_code != 200:
         error_message = "Request failed ({} {}) - {}".format(
             response.status_code,
-            response.reason,
+            response.reason_phrase,
             response.json().get("error", {}).get("message"),
         )
         logger.error(error_message)
@@ -207,12 +211,13 @@ def delete_auth_method(user_id: str, auth_method: dict) -> bool:
 
     logger.info(f"Deleting {method_type} {method_id} for user {user_id} ..")
 
-    response = requests.delete(url, headers=headers)
+    client = get_http_client()
+    response = client.delete(url, headers=headers)
 
     if response.status_code != 204:
         error_message = "Request failed ({} {}) - {}".format(
             response.status_code,
-            response.reason,
+            response.reason_phrase,
             response.json().get("error", {}).get("message"),
         )
         logger.error(error_message)
@@ -303,20 +308,24 @@ def get_user_risk(
         "$top": top if top is not None else (MAX_PAGE_SIZE if all else None),
         "$count": "true" if filter or search or orderby else None,
     }
+    headers = filter_none(headers)
+    params = filter_none(params)
 
     data = []
     count = -1
     total_seconds = 0.0
     logger.info("Getting risky users ..")
 
+    client = get_http_client()
+
     while True:
-        response = requests.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:
             error_message = "Request failed ({} {}) - {}".format(
                 response.status_code,
-                response.reason,
+                response.reason_phrase,
                 response.json().get("error", {}).get("message"),
             )
             logger.error(error_message)
@@ -384,19 +393,22 @@ def get_signin(
         "$orderby": ",".join(ensure_list(orderby)) if orderby else None,
         "$top": top if top is not None else (MAX_PAGE_SIZE if all else None),
     }
+    params = filter_none(params)
 
     data = []
     total_seconds = 0.0
     logger.info("Getting sign-ins ..")
 
+    client = get_http_client()
+
     while True:
-        response = requests.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:
             error_message = "Request failed ({} {}):\n{}".format(
                 response.status_code,
-                response.reason,
+                response.reason_phrase,
                 response.json().get("error", {}).get("message"),
             )
             logger.error(error_message)

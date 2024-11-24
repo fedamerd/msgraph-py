@@ -3,9 +3,7 @@ from base64 import b64decode
 from typing import Union
 from urllib.parse import quote_plus, urljoin
 
-import requests
-
-from .core import ensure_list, get_token
+from .core import ensure_list, filter_none, get_http_client, get_token
 
 logger = logging.getLogger(__name__)
 
@@ -57,20 +55,24 @@ def get_device(
         "$top": top if top is not None else (MAX_PAGE_SIZE if all else None),
         "$count": "true" if filter or search or orderby else None,
     }
+    headers = filter_none(headers)
+    params = filter_none(params)
 
     data = []
     count = -1
     total_seconds = 0.0
     logger.info("Getting devices ..")
 
+    client = get_http_client()
+
     while True:
-        response = requests.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:
             error_message = "Request failed ({} {}) - {}".format(
                 response.status_code,
-                response.reason,
+                response.reason_phrase,
                 response.json().get("error", {}).get("message"),
             )
             logger.error(error_message)
@@ -116,12 +118,13 @@ def delete_device(device_id: str) -> bool:
 
     logger.info(f"Deleting device {device_id} ..")
 
-    response = requests.delete(url, headers=headers)
+    client = get_http_client()
+    response = client.delete(url, headers=headers)
 
     if response.status_code != 204:
         error_message = "Request failed ({} {}) - {}".format(
             response.status_code,
-            response.reason,
+            response.reason_phrase,
             response.json().get("error", {}).get("message"),
         )
         logger.error(error_message)
@@ -174,20 +177,24 @@ def list_owned_devices(
         "$top": top if top is not None else (MAX_PAGE_SIZE if all else None),
         "$count": "true" if filter or search or orderby else None,
     }
+    headers = filter_none(headers)
+    params = filter_none(params)
 
     data = []
     count = -1
     total_seconds = 0.0
     logger.info(f"Getting devices owned by {user_id} ..")
 
+    client = get_http_client()
+
     while True:
-        response = requests.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:
             error_message = "Request failed ({} {}) - {}".format(
                 response.status_code,
-                response.reason,
+                response.reason_phrase,
                 response.json().get("error", {}).get("message"),
             )
             logger.error(error_message)
@@ -238,12 +245,13 @@ def get_laps_password(device_id: str) -> Union[str, None]:
 
     logger.info(f"Getting LAPS password for {device_id} ..")
 
-    response = requests.get(url, headers=headers, params=params)
+    client = get_http_client()
+    response = client.get(url, headers=headers, params=params)
 
     if response.status_code != 200:
         error_message = "Request failed ({} {}) - {}".format(
             response.status_code,
-            response.reason,
+            response.reason_phrase,
             response.json().get("error", {}).get("message"),
         )
         logger.error(error_message)

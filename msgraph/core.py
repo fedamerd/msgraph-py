@@ -1,3 +1,4 @@
+import atexit
 import logging
 from getpass import getpass
 from os import environ
@@ -5,9 +6,10 @@ from time import time
 from typing import Union
 from urllib.parse import quote_plus
 
-import requests
+import httpx
 
 logger = logging.getLogger(__name__)
+_http_client = None
 _token_cache = {}
 
 
@@ -18,6 +20,38 @@ def ensure_list(value: Union[list[str], str]) -> list[str]:
     """
 
     return [value] if isinstance(value, str) else value
+
+
+def filter_none(dictionary: dict) -> dict:
+    """
+    Helper function to filter out None values from dictionaries.
+    This is necessary as part of building params and header
+    dictionaries for httpx requests, as None values cause issues
+    with encoding internally in httpx.
+
+    """
+
+    filtered_dict = {}
+    for key, value in dictionary.items():
+        if value is not None:
+            filtered_dict[key] = value
+    return filtered_dict
+
+
+def get_http_client() -> httpx.Client:
+    """
+    Returns a new or existing HTTP client and sets it as a global
+    variable, enabling connection pooling and HTTP/2 support.
+
+    """
+
+    global _http_client
+    if _http_client is None:
+        logger.info("Initializing new HTTP client ..")
+        _http_client = httpx.Client(http2=True)
+    else:
+        logger.info("Using existing HTTP client")
+    return _http_client
 
 
 def get_token() -> str:
@@ -53,12 +87,13 @@ def get_token() -> str:
 
     logger.info("Getting access token ..")
 
-    response = requests.post(url, data=payload)
+    client = get_http_client()
+    response = client.post(url, data=payload)
 
     if response.status_code != 200:
         error_message = "Request failed ({} {}) - {}".format(
             response.status_code,
-            response.reason,
+            response.reason_phrase,
             response.json().get("error_description"),
         )
         logger.error(error_message)
@@ -116,3 +151,18 @@ def _get_config() -> tuple[str]:
         client_secret = getpass("AAD_CLIENT_SECRET: ")
 
     return (tenant_id, client_id, client_secret)
+
+
+@atexit.register
+def exit_handler():
+    """
+    Ensures the HTTP client is always closed when the application
+    terminates execution.
+
+    """
+
+    global _http_client
+    if _http_client is not None:
+        logger.info("Closing HTTP client ..")
+        _http_client.close()
+        _http_client = None

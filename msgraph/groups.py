@@ -2,9 +2,7 @@ import logging
 from typing import Union
 from urllib.parse import quote_plus, urljoin
 
-import requests
-
-from .core import ensure_list, get_token
+from .core import ensure_list, filter_none, get_http_client, get_token
 
 logger = logging.getLogger(__name__)
 
@@ -56,20 +54,24 @@ def get_group(
         "$top": top if top is not None else (MAX_PAGE_SIZE if all else None),
         "$count": "true" if filter or search or orderby else None,
     }
+    headers = filter_none(headers)
+    params = filter_none(params)
 
     data = []
     count = -1
     total_seconds = 0.0
     logger.info("Getting groups ..")
 
+    client = get_http_client()
+
     while True:
-        response = requests.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:
             error_message = "Request failed ({} {}) - {}".format(
                 response.status_code,
-                response.reason,
+                response.reason_phrase,
                 response.json().get("error", {}).get("message"),
             )
             logger.error(error_message)
@@ -139,20 +141,24 @@ def list_group_members(
         "$top": top if top is not None else (MAX_PAGE_SIZE if all else None),
         "$count": "true" if filter or search or orderby else None,
     }
+    headers = filter_none(headers)
+    params = filter_none(params)
 
     data = []
     count = -1
     total_seconds = 0.0
     logger.info(f"Getting group {group_id} members ..")
 
+    client = get_http_client()
+
     while True:
-        response = requests.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:
             error_message = "Request failed ({} {}) - {}".format(
                 response.status_code,
-                response.reason,
+                response.reason_phrase,
                 response.json().get("error", {}).get("message"),
             )
             logger.error(error_message)
@@ -212,6 +218,8 @@ def add_group_member(group_id: str, members: Union[list[str], str]) -> bool:
     total_seconds = 0.0
     logger.info(f"Adding {len(members)} members to group {group_id} ..")
 
+    client = get_http_client()
+
     for i in range(0, len(members), MAX_BATCH_SIZE):
         batch = members[i : i + MAX_BATCH_SIZE]
 
@@ -221,13 +229,13 @@ def add_group_member(group_id: str, members: Union[list[str], str]) -> bool:
             ]
         }
 
-        response = requests.patch(url, headers=headers, json=payload)
+        response = client.patch(url, headers=headers, json=payload)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 204:
             error_message = "Request failed ({} {}) - {}".format(
                 response.status_code,
-                response.reason,
+                response.reason_phrase,
                 response.json().get("error", {}).get("message"),
             )
             logger.error(error_message)
@@ -264,12 +272,13 @@ def remove_group_member(group_id: str, member_id: str) -> bool:
 
     logger.info(f"Removing member {member_id} from group {group_id} ..")
 
-    response = requests.delete(url, headers=headers)
+    client = get_http_client()
+    response = client.delete(url, headers=headers)
 
     if response.status_code != 204:
         error_message = "Request failed ({} {}) - {}".format(
             response.status_code,
-            response.reason,
+            response.reason_phrase,
             response.json().get("error", {}).get("message"),
         )
         logger.error(error_message)

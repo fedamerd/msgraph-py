@@ -6,9 +6,7 @@ import os.path
 from typing import Union
 from urllib.parse import quote_plus
 
-import requests
-
-from .core import ensure_list, get_token
+from .core import ensure_list, get_http_client, get_token
 
 VALID_PRIORITY = ["low", "normal", "high"]
 
@@ -105,12 +103,13 @@ def send_mail(
     logger.debug(f"Payload content:\n{json.dumps(payload, indent=2)}")
     logger.info(f"Sending mail from {sender_id} to {recipients}")
 
-    response = requests.post(url, headers=headers, json=payload)
+    client = get_http_client()
+    response = client.post(url, headers=headers, json=payload)
 
     if response.status_code != 202:
         error_message = "Request failed ({} {}) - {}".format(
             response.status_code,
-            response.reason,
+            response.reason_phrase,
             response.json().get("error", {}).get("message"),
         )
         logger.error(error_message)

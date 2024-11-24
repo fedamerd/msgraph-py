@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "msgraph-py"
 dynamic = ["version"]
-dependencies = ["requests"]
+dependencies = ["httpx[http2]"]
 authors = [
   { name="fedamerd" },
 ]
