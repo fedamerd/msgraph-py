@@ -1,5 +1,21 @@
 # Changelog
 
+## [v1.2.0] - 2024-11-24
+
+This release changes the underlying Python HTTP library from `requests` to `httpx` and improves performance by enabling connection pooling and HTTP/2 support. All functions now share the same HTTP client internally.
+
+This should reduce latency by avoiding establishing new connections on every request, which is important when sending multiple consecutive API requests in a loop.
+
+### Added
+
+- Connection pooling for HTTP requests ([`03636eb`](https://github.com/fedamerd/msgraph-py/commit/03636eb))
+- HTTP/2 support ([`03636eb`](https://github.com/fedamerd/msgraph-py/commit/03636eb))
+
+### Changed
+
+- HTTP library from `requests` to `httpx` ([`03636eb`](https://github.com/fedamerd/msgraph-py/commit/03636eb))
+- GitHub Actions CI/CD `release.yml` workflow updated based on the latest Python Packaging User Guide ([`27cda40`](https://github.com/fedamerd/msgraph-py/commit/27cda40))
+
 ## [v1.1.0] - 2024-03-03
 
 This release adds two new functions to the devices module.
@@ -44,5 +60,6 @@ See the [README](https://github.com/fedamerd/msgraph-py/blob/main/README.md) for
 
 Found a bug or want to request a feature? Open a new issue using the [issue tracker](https://github.com/fedamerd/msgraph-py/issues).
 
+[v1.2.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.2.0
 [v1.1.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.1.0
 [v1.0.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.0.0
