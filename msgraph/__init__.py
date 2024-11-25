@@ -2,7 +2,9 @@ import logging
 
 from .devices import (  # noqa: F401
     delete_device,
+    get_bitlocker_key,
     get_device,
+    get_device_bitlocker_key,
     get_laps_password,
     list_owned_devices,
 )
