@@ -1,5 +1,16 @@
 # Changelog
 
+## [v1.3.0] - 2024-11-25
+
+This release adds two new functions to the devices module for retrieving BitLocker recovery keys.
+
+For more information on the `bitlockerRecoveryKey` resource type and examples, see [Microsofts API documentation](https://learn.microsoft.com/en-us/graph/api/resources/bitlockerrecoverykey?view=graph-rest-1.0).
+
+### Added
+
+- `get_bitlocker_key()` - returns BitLocker recovery keys based on a key ID or a filter query ([`4738200`](https://github.com/fedamerd/msgraph-py/commit/4738200))
+- `get_device_bitlocker_key()` - returns BitLocker recovery keys based on a device ID, as a simple convenience function ([`4738200`](https://github.com/fedamerd/msgraph-py/commit/4738200))
+
 ## [v1.2.0] - 2024-11-24
 
 This release changes the underlying Python HTTP library from `requests` to `httpx` and improves performance by enabling connection pooling and HTTP/2 support. All functions now share the same HTTP client internally.
@@ -60,6 +71,7 @@ See the [README](https://github.com/fedamerd/msgraph-py/blob/main/README.md) for
 
 Found a bug or want to request a feature? Open a new issue using the [issue tracker](https://github.com/fedamerd/msgraph-py/issues).
 
+[v1.3.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.3.0
 [v1.2.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.2.0
 [v1.1.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.1.0
 [v1.0.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.0.0
