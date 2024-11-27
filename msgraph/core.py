@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 _http_client = None
 _token_cache = {}
 
+DEFAULT_TIMEOUT = 30.0
+
 
 def ensure_list(value: Union[list[str], str]) -> list[str]:
     """
@@ -48,7 +50,7 @@ def get_http_client() -> httpx.Client:
     global _http_client
     if _http_client is None:
         logger.info("Initializing new HTTP client ..")
-        _http_client = httpx.Client(http2=True)
+        _http_client = httpx.Client(http2=True, timeout=DEFAULT_TIMEOUT)
     else:
         logger.info("Using existing HTTP client")
     return _http_client
