@@ -1,5 +1,21 @@
 # Changelog
 
+## [v1.3.1] - 2024-11-27
+
+This minor release aims to fix an unintended change to the default HTTP request timeout threshold after migrating to the `httpx` backend in [v1.2.0], which set a timeout of 5 seconds as the client default. This caused timeouts for certain long-running queries (e.g. `/auditLogs/signIns/`).
+
+The default timeout has now been increased to **30 seconds**, in addition to adding an optional `timeout` parameter to every functions for overriding this value when needed.
+
+Setting the value to `None` will disable timeout entirely. This was the previous behaviour before [v1.2.0] and is not recommended. Timeouts will cause an `httpx.TimeoutException` and should be handled by the application logic.
+
+### Added
+
+- Optional `timeout` parameter per function for overriding the default global timeout value ([`32f6a29`](https://github.com/fedamerd/msgraph-py/commit/32f6a29))
+
+### Fixed
+
+- Low timeout value after migrating to httpx. Default has been increased to 30 seconds ([`2790a36`](https://github.com/fedamerd/msgraph-py/commit/2790a36))
+
 ## [v1.3.0] - 2024-11-25
 
 This release adds two new functions to the devices module for retrieving BitLocker recovery keys.
@@ -71,6 +87,7 @@ See the [README](https://github.com/fedamerd/msgraph-py/blob/main/README.md) for
 
 Found a bug or want to request a feature? Open a new issue using the [issue tracker](https://github.com/fedamerd/msgraph-py/issues).
 
+[v1.3.1]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.3.1
 [v1.3.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.3.0
 [v1.2.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.2.0
 [v1.1.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.1.0
