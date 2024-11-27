@@ -2,7 +2,7 @@ import logging
 from typing import Union
 from urllib.parse import quote_plus, urljoin
 
-from .core import ensure_list, filter_none, get_http_client, get_token
+from .core import DEFAULT_TIMEOUT, ensure_list, filter_none, get_http_client, get_token
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,7 @@ def get_group(
     orderby: Union[list, str] = None,
     top: int = None,
     all: bool = False,
+    timeout: float = DEFAULT_TIMEOUT,
 ) -> Union[list[dict], dict]:
     """
     Returns one or more groups from the Microsoft Graph API.
@@ -65,7 +66,7 @@ def get_group(
     client = get_http_client()
 
     while True:
-        response = client.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params, timeout=timeout)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:
@@ -107,6 +108,7 @@ def list_group_members(
     orderby: Union[list, str] = None,
     top: int = None,
     all: bool = False,
+    timeout: float = DEFAULT_TIMEOUT,
 ) -> list[dict]:
     """
     Returns a list of group members from the Microsoft Graph API.
@@ -152,7 +154,7 @@ def list_group_members(
     client = get_http_client()
 
     while True:
-        response = client.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params, timeout=timeout)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:
@@ -186,7 +188,9 @@ def list_group_members(
     return data
 
 
-def add_group_member(group_id: str, members: Union[list[str], str]) -> bool:
+def add_group_member(
+    group_id: str, members: Union[list[str], str], timeout: float = DEFAULT_TIMEOUT
+) -> bool:
     """
     Adds members to a security group or M365 group. Supports adding multiple
     members at once; the function will dynamically split the API-calls in
@@ -229,7 +233,7 @@ def add_group_member(group_id: str, members: Union[list[str], str]) -> bool:
             ]
         }
 
-        response = client.patch(url, headers=headers, json=payload)
+        response = client.patch(url, headers=headers, json=payload, timeout=timeout)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 204:
@@ -250,7 +254,9 @@ def add_group_member(group_id: str, members: Union[list[str], str]) -> bool:
     return True
 
 
-def remove_group_member(group_id: str, member_id: str) -> bool:
+def remove_group_member(
+    group_id: str, member_id: str, timeout: float = DEFAULT_TIMEOUT
+) -> bool:
     """
     Removes a member from a security group or M365 group.
 
@@ -273,7 +279,7 @@ def remove_group_member(group_id: str, member_id: str) -> bool:
     logger.info(f"Removing member {member_id} from group {group_id} ..")
 
     client = get_http_client()
-    response = client.delete(url, headers=headers)
+    response = client.delete(url, headers=headers, timeout=timeout)
 
     if response.status_code != 204:
         error_message = "Request failed ({} {}) - {}".format(

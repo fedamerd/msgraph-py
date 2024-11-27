@@ -3,7 +3,7 @@ from base64 import b64decode
 from typing import Union
 from urllib.parse import quote_plus, urljoin
 
-from .core import ensure_list, filter_none, get_http_client, get_token
+from .core import DEFAULT_TIMEOUT, ensure_list, filter_none, get_http_client, get_token
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +16,7 @@ def get_device(
     orderby: Union[list, str] = None,
     top: int = None,
     all: bool = False,
+    timeout: float = DEFAULT_TIMEOUT,
 ) -> Union[list[dict], dict]:
     """
     Returns one or more devices from the Microsoft Graph API.
@@ -66,7 +67,7 @@ def get_device(
     client = get_http_client()
 
     while True:
-        response = client.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params, timeout=timeout)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:
@@ -100,7 +101,7 @@ def get_device(
     return data[0] if device_id else data
 
 
-def delete_device(device_id: str) -> bool:
+def delete_device(device_id: str, timeout: float = DEFAULT_TIMEOUT) -> bool:
     """
     Deletes a device based on its id property.
 
@@ -119,7 +120,7 @@ def delete_device(device_id: str) -> bool:
     logger.info(f"Deleting device {device_id} ..")
 
     client = get_http_client()
-    response = client.delete(url, headers=headers)
+    response = client.delete(url, headers=headers, timeout=timeout)
 
     if response.status_code != 204:
         error_message = "Request failed ({} {}) - {}".format(
@@ -144,6 +145,7 @@ def list_owned_devices(
     orderby: Union[list, str] = None,
     top: int = None,
     all: bool = False,
+    timeout: float = DEFAULT_TIMEOUT,
 ) -> list[dict]:
     """
     Returns a list of devices owned by a user from the Microsoft Graph API.
@@ -188,7 +190,7 @@ def list_owned_devices(
     client = get_http_client()
 
     while True:
-        response = client.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params, timeout=timeout)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:
@@ -222,7 +224,9 @@ def list_owned_devices(
     return data
 
 
-def get_laps_password(device_id: str) -> Union[str, None]:
+def get_laps_password(
+    device_id: str, timeout: float = DEFAULT_TIMEOUT
+) -> Union[str, None]:
     """
     Returns a string with the current decoded LAPS password for an
     Intune device from the Microsoft Graph API. Returns None if the
@@ -246,7 +250,7 @@ def get_laps_password(device_id: str) -> Union[str, None]:
     logger.info(f"Getting LAPS password for {device_id} ..")
 
     client = get_http_client()
-    response = client.get(url, headers=headers, params=params)
+    response = client.get(url, headers=headers, params=params, timeout=timeout)
 
     if response.status_code != 200:
         error_message = "Request failed ({} {}) - {}".format(
@@ -281,6 +285,7 @@ def get_bitlocker_key(
     orderby: Union[list, str] = None,
     top: int = None,
     all: bool = False,
+    timeout: float = DEFAULT_TIMEOUT,
 ) -> Union[list[dict], dict]:
     """
     Returns one or more BitLocker recovery key objects from the
@@ -331,7 +336,7 @@ def get_bitlocker_key(
     client = get_http_client()
 
     while True:
-        response = client.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params, timeout=timeout)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:
@@ -365,7 +370,9 @@ def get_bitlocker_key(
     return data[0] if key_id else data
 
 
-def get_device_bitlocker_key(device_id: str) -> list[dict]:
+def get_device_bitlocker_key(
+    device_id: str, timeout: float = DEFAULT_TIMEOUT
+) -> list[dict]:
     """
     Convenience function to get BitLocker recovery keys based on deviceId
     alone. Performs at least two API requests using get_bitlocker_key(),
@@ -384,8 +391,10 @@ def get_device_bitlocker_key(device_id: str) -> list[dict]:
 
     device_bitlocker_keys = []
 
-    for key in get_bitlocker_key(filter=f"deviceId eq '{device_id}'"):
-        bitlocker_key = get_bitlocker_key(key_id=key["id"], select="key")
+    for key in get_bitlocker_key(filter=f"deviceId eq '{device_id}'", timeout=timeout):
+        bitlocker_key = get_bitlocker_key(
+            key_id=key["id"], select="key", timeout=timeout
+        )
         device_bitlocker_keys.append(bitlocker_key)
 
     return device_bitlocker_keys

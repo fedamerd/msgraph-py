@@ -2,7 +2,7 @@ import logging
 from typing import Union
 from urllib.parse import quote_plus, urljoin
 
-from .core import ensure_list, filter_none, get_http_client, get_token
+from .core import DEFAULT_TIMEOUT, ensure_list, filter_none, get_http_client, get_token
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,7 @@ def get_user(
     orderby: Union[list, str] = None,
     top: int = None,
     all: bool = False,
+    timeout: float = DEFAULT_TIMEOUT,
 ) -> Union[list[dict], dict]:
     """
     Returns one or more users from the Microsoft Graph API.
@@ -63,7 +64,7 @@ def get_user(
     client = get_http_client()
 
     while True:
-        response = client.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params, timeout=timeout)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:
@@ -97,7 +98,7 @@ def get_user(
     return data[0] if user_id else data
 
 
-def revoke_refresh_tokens(user_id: str) -> bool:
+def revoke_refresh_tokens(user_id: str, timeout: float = DEFAULT_TIMEOUT) -> bool:
     """
     Revokes all refresh tokens for a given user.
 
@@ -116,7 +117,7 @@ def revoke_refresh_tokens(user_id: str) -> bool:
     logger.info(f"Revoking refresh tokens for {user_id} ..")
 
     client = get_http_client()
-    response = client.post(url, headers=headers)
+    response = client.post(url, headers=headers, timeout=timeout)
 
     if response.status_code != 200:
         error_message = "Request failed ({} {}) - {}".format(
@@ -133,7 +134,7 @@ def revoke_refresh_tokens(user_id: str) -> bool:
     return response.json()["value"]
 
 
-def list_auth_methods(user_id: str) -> list[dict]:
+def list_auth_methods(user_id: str, timeout: float = DEFAULT_TIMEOUT) -> list[dict]:
     """
     Returns a list of all authentication methods for a given user.
 
@@ -152,7 +153,7 @@ def list_auth_methods(user_id: str) -> list[dict]:
     logger.info(f"Getting authentication methods for {user_id} ..")
 
     client = get_http_client()
-    response = client.get(url, headers=headers)
+    response = client.get(url, headers=headers, timeout=timeout)
 
     if response.status_code != 200:
         error_message = "Request failed ({} {}) - {}".format(
@@ -171,7 +172,9 @@ def list_auth_methods(user_id: str) -> list[dict]:
     return data
 
 
-def delete_auth_method(user_id: str, auth_method: dict) -> bool:
+def delete_auth_method(
+    user_id: str, auth_method: dict, timeout: float = DEFAULT_TIMEOUT
+) -> bool:
     """
     Deletes an authentication method for a user and returns True or False.
     Expects a dictionary object in the auth_method parameter from list_auth_methods()
@@ -212,7 +215,7 @@ def delete_auth_method(user_id: str, auth_method: dict) -> bool:
     logger.info(f"Deleting {method_type} {method_id} for user {user_id} ..")
 
     client = get_http_client()
-    response = client.delete(url, headers=headers)
+    response = client.delete(url, headers=headers, timeout=timeout)
 
     if response.status_code != 204:
         error_message = "Request failed ({} {}) - {}".format(
@@ -229,7 +232,7 @@ def delete_auth_method(user_id: str, auth_method: dict) -> bool:
     return True
 
 
-def reset_strong_auth(user_id: str) -> bool:
+def reset_strong_auth(user_id: str, timeout: float = DEFAULT_TIMEOUT) -> bool:
     """
     Resets 2FA by deleting the user's registered authentication methods.
     The API has no way to check the default method, which must be deleted last.
@@ -243,11 +246,11 @@ def reset_strong_auth(user_id: str) -> bool:
 
     default_method = None
 
-    revoke_refresh_tokens(user_id)
+    revoke_refresh_tokens(user_id, timeout=timeout)
 
-    for method in list_auth_methods(user_id):
+    for method in list_auth_methods(user_id, timeout=timeout):
         try:
-            delete_auth_method(user_id, method)
+            delete_auth_method(user_id, method, timeout=timeout)
         except ConnectionError:
             if not default_method:
                 default_method = method
@@ -257,7 +260,7 @@ def reset_strong_auth(user_id: str) -> bool:
                 logger.error("default_method is already assigned")
                 raise
     if default_method:
-        delete_auth_method(user_id, default_method)
+        delete_auth_method(user_id, default_method, timeout=timeout)
 
     return True
 
@@ -270,6 +273,7 @@ def get_user_risk(
     orderby: Union[list, str] = None,
     top: int = None,
     all: bool = False,
+    timeout: float = DEFAULT_TIMEOUT,
 ) -> Union[list[dict], dict]:
     """
     Returns the user risk status for one or more users from the Microsoft Graph API.
@@ -319,7 +323,7 @@ def get_user_risk(
     client = get_http_client()
 
     while True:
-        response = client.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params, timeout=timeout)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:
@@ -359,6 +363,7 @@ def get_signin(
     orderby: Union[list, str] = None,
     top: int = None,
     all: bool = False,
+    timeout: float = DEFAULT_TIMEOUT,
 ) -> Union[list[dict], dict]:
     """
     Returns sign-in events for one or more users from the Microsoft Graph API.
@@ -402,7 +407,7 @@ def get_signin(
     client = get_http_client()
 
     while True:
-        response = client.get(url, headers=headers, params=params)
+        response = client.get(url, headers=headers, params=params, timeout=timeout)
         total_seconds += response.elapsed.total_seconds()
 
         if response.status_code != 200:

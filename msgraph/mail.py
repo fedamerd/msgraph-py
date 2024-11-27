@@ -6,7 +6,7 @@ import os.path
 from typing import Union
 from urllib.parse import quote_plus
 
-from .core import ensure_list, get_http_client, get_token
+from .core import DEFAULT_TIMEOUT, ensure_list, get_http_client, get_token
 
 VALID_PRIORITY = ["low", "normal", "high"]
 
@@ -24,6 +24,7 @@ def send_mail(
     recipients_bcc: Union[list[str], str] = [],
     attachments: Union[list[str], str] = [],
     save_sent_items: bool = False,
+    timeout: float = DEFAULT_TIMEOUT,
 ) -> bool:
     """
     Sends an email on behalf of a user via the Microsoft Graph API.
@@ -104,7 +105,7 @@ def send_mail(
     logger.info(f"Sending mail from {sender_id} to {recipients}")
 
     client = get_http_client()
-    response = client.post(url, headers=headers, json=payload)
+    response = client.post(url, headers=headers, json=payload, timeout=timeout)
 
     if response.status_code != 202:
         error_message = "Request failed ({} {}) - {}".format(
