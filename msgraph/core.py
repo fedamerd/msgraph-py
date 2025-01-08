@@ -1,12 +1,24 @@
 import atexit
 import logging
+import uuid
+from base64 import urlsafe_b64encode
+from binascii import unhexlify
 from getpass import getpass
 from os import environ
+from pathlib import Path
 from time import time
 from typing import Union
 from urllib.parse import quote_plus
 
 import httpx
+import jwt
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
+from cryptography.hazmat.primitives.serialization import (
+    load_pem_private_key,
+    pkcs12,
+)
+from cryptography.x509 import Certificate, load_pem_x509_certificate
 
 logger = logging.getLogger(__name__)
 _http_client = None
@@ -77,15 +89,47 @@ def get_token() -> str:
         else:
             logger.info("Cached access token has expired")
 
-    (tenant_id, client_id, client_secret) = _get_config()
+    (
+        tenant_id,
+        client_id,
+        client_secret,
+        key_path,
+        key_passphrase,
+        thumbprint,
+    ) = _get_config()
 
     url = BASE_URL.format(quote_plus(tenant_id))
     payload = {
         "grant_type": "client_credentials",
         "scope": "https://graph.microsoft.com/.default",
         "client_id": client_id,
-        "client_secret": client_secret,
     }
+
+    if client_secret:
+        logger.info("Using client_secret to authenticate the client")
+        payload["client_secret"] = client_secret
+
+    elif key_path:
+        logger.info("Using client_assertion to authenticate the client")
+
+        if not thumbprint:
+            logger.debug("No thumbprint provided. Will attempt to load certificate")
+            key, cert = _get_key_and_cert(key_path, key_passphrase, include_cert=True)
+            thumbprint = cert.fingerprint(hashes.SHA256()).hex()
+        else:
+            key, _ = _get_key_and_cert(key_path, key_passphrase)
+        logger.debug(f"Thumbprint: {thumbprint}")
+
+        assertion_type = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+        jwt_assertion = _get_jwt_assertion(client_id, url, key, thumbprint)
+
+        payload["client_assertion_type"] = assertion_type
+        payload["client_assertion"] = jwt_assertion
+
+    else:
+        raise ValueError(
+            "Unknown client authentication method. No client_secret or key_path provided."
+        )
 
     logger.info("Getting access token ..")
 
@@ -132,6 +176,9 @@ def _get_config() -> tuple[str]:
             tenant_id = settings.AAD_TENANT_ID
             client_id = settings.AAD_CLIENT_ID
             client_secret = settings.AAD_CLIENT_SECRET
+            key_path = settings.AAD_PRIVATE_KEY_PATH
+            key_passphrase = settings.AAD_PRIVATE_KEY_PASSPHRASE
+            thumbprint = settings.AAD_CERT_THUMBPRINT
         else:
             raise ImportError("Django not running")
 
@@ -141,6 +188,18 @@ def _get_config() -> tuple[str]:
         tenant_id = environ.get("AAD_TENANT_ID")
         client_id = environ.get("AAD_CLIENT_ID")
         client_secret = environ.get("AAD_CLIENT_SECRET")
+        key_path = environ.get("AAD_PRIVATE_KEY_PATH")
+        key_passphrase = environ.get("AAD_PRIVATE_KEY_PASSPHRASE")
+        thumbprint = environ.get("AAD_CERT_THUMBPRINT")
+
+    if client_secret and key_path:
+        raise ValueError(
+            "Ambiguous client authentication method. AAD_CLIENT_SECRET and AAD_PRIVATE_KEY_PATH are mutually exclusive."
+        )
+    elif any([key_passphrase, thumbprint]) and not key_path:
+        logger.warning(
+            "AAD_PRIVATE_KEY_PATH is not set. AAD_PRIVATE_KEY_PASSPHRASE and AAD_CERT_THUMBPRINT variables will be ignored."
+        )
 
     if not tenant_id:
         logger.info("AAD_TENANT_ID missing or empty")
@@ -148,11 +207,103 @@ def _get_config() -> tuple[str]:
     if not client_id:
         logger.info("AAD_CLIENT_ID missing or empty")
         client_id = input("AAD_CLIENT_ID: ")
-    if not client_secret:
-        logger.info("AAD_CLIENT_SECRET missing or empty")
+    if not client_secret and not key_path:
+        logger.info("AAD_CLIENT_SECRET and AAD_PRIVATE_KEY_PATH missing or empty")
         client_secret = getpass("AAD_CLIENT_SECRET: ")
 
-    return (tenant_id, client_id, client_secret)
+    return (
+        tenant_id,
+        client_id,
+        client_secret,
+        key_path,
+        key_passphrase,
+        thumbprint,
+    )
+
+
+def _get_jwt_assertion(
+    issuer: str,
+    audience: str,
+    key: PrivateKeyTypes,
+    thumbprint: str,
+    expires_in: int = 30,
+) -> str:
+    """
+    Returns a JWT signed with a private key.
+
+    Documentation:
+    https://learn.microsoft.com/en-us/entra/identity-platform/certificate-credentials
+
+    """
+
+    headers = {}
+    encoded_thumbprint = urlsafe_b64encode(unhexlify(thumbprint)).rstrip(b"=").decode()
+
+    if len(thumbprint) == 40:
+        headers["x5t"] = encoded_thumbprint
+    elif len(thumbprint) == 64:
+        headers["x5t#S256"] = encoded_thumbprint
+    else:
+        raise ValueError(
+            f"Certificate thumbprint {thumbprint} has incorrect length. Must be either 40 (SHA-1) or 64 (SHA-256) characters"
+        )
+
+    current_time = int(time())
+    claims = {
+        "aud": audience,
+        "iss": issuer,
+        "sub": issuer,
+        "iat": current_time,
+        "nbf": current_time,
+        "exp": current_time + expires_in,
+        "jti": str(uuid.uuid4()),
+    }
+    logger.debug(f"JWT assertion headers: {headers}")
+    logger.debug(f"JWT assertion claims: {claims}")
+
+    return jwt.encode(claims, key, algorithm="PS256", headers=headers)
+
+
+def _get_key_and_cert(
+    key_path: str,
+    key_passphrase: str = None,
+    include_cert: bool = False,
+) -> tuple[PrivateKeyTypes, Certificate | None]:
+    """
+    Returns the private key from the specified key_path and optionally
+    the X.509 certificate as a tuple. The include_cert parameter is False
+    by default and requires the certificate to be included in the same
+    file as the private key.
+
+    The certificate is used to automatically retrieve the thumbprint,
+    as this is required for the x5t#S256 header when constructing the
+    JWT assertion later. MS Graph uses this as a reference to the
+    certificate uploaded to the clients app registration in Entra ID.
+
+    Currently only supports PKCS#12 and PEM formats.
+
+    """
+
+    with open(key_path, "rb") as f:
+        logger.debug(f"Reading key_bytes from {key_path}")
+        key_bytes = f.read()
+
+    encoded_passphrase = key_passphrase.encode() if key_passphrase else None
+
+    # Checks the file extension to determine if the key is in PKCS#12 format
+    if Path(key_path).suffix in [".pfx", ".p12"]:
+        logger.debug("Using PKCS#12 format to load the private key")
+        key, cert, _ = pkcs12.load_key_and_certificates(key_bytes, encoded_passphrase)
+
+    # Assumes PEM format otherwise
+    else:
+        logger.debug("Using PEM format to load the private key")
+        key = load_pem_private_key(key_bytes, encoded_passphrase)
+
+        if include_cert:
+            cert = load_pem_x509_certificate(key_bytes)
+
+    return (key, cert) if include_cert else (key, None)
 
 
 @atexit.register
