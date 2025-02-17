@@ -13,7 +13,7 @@ For more information on how to use certificate-based authentication, see the [RE
 
 ### Added
 
-- Support for client assertion authentication method.
+- Support for client assertion authentication method ([`007bf54`](https://github.com/fedamerd/msgraph-py/commit/007bf54))
 
 ## [v1.3.1] - 2024-11-27
 
