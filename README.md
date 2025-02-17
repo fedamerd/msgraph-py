@@ -80,6 +80,46 @@ Some of the benefits of `msgraph-py` are:
 > [!WARNING]  
 > You should **never** store sensitive credentials or secrets in production code or commit them to your repository. Always load them at runtime from a secure location or from a local file excluded from the repository.
 
+## Certificate-based authentication
+
+For improved security, consider migrating to certificate-based authentication instead of a static client secret. The simplest way to do this is using the `openssl` command to create a self-signed certificate and private key:
+
+```bash
+hostname=$(hostname -s)
+fqdn=$(hostname -f)
+
+openssl req \
+    -x509 \
+    -newkey rsa:2048 \
+    -sha256 \
+    -days 3650 \
+    -subj "/CN=${fqdn}" \
+    -keyout "${hostname}_key.pem" \
+    -out "${hostname}_cert.pem" \
+    -noenc \
+    &> /dev/null
+```
+
+> [!NOTE]  
+> Remove the `-noenc` option if you want to encrypt the private key with a passphrase. Adjust options such as `-days` and `-subj` according to your requirements.
+
+Upload the certificate PEM-file to the app registration in Microsoft Entra ID. Make a note of the certificate thumbprint, as we will be needing this in the next step. See [Microsofts documentation](https://learn.microsoft.com/en-us/graph/auth-register-app-v2#add-credentials) on adding credentials for more info.
+
+Remove `AAD_CLIENT_SECRET` from your configuration and set the following environment variables (or `settings.py`) instead:
+
+```python
+os.environ["AAD_PRIVATE_KEY_PATH"] = "path/to/private_key.pem"
+
+# Required if the private key file is password-protected
+os.environ["AAD_PRIVATE_KEY_PASSPHRASE"] = "key-passphrase-value"
+
+# Required if the private key file does not contain a X.509 certificate
+os.environ["AAD_CERT_THUMBPRINT"] = "cert-thumbprint-value"
+```
+
+> [!NOTE]  
+> PKCS#12 format (`.pfx` or `.p12`) is also supported in addition to PEM. If the certificate and private key are bundled together in the same file, you may omit setting `AAD_CERT_THUMBPRINT`, as the thumbprint will be retrieved from the certificate automatically.
+
 ## Usage examples
 
 ### Get a single user by objectId or userPrincipalName

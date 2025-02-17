@@ -1,5 +1,20 @@
 # Changelog
 
+## [v1.4.0] - 2025-02-17
+
+This release implements certificate-based authentication as an alternative to using a static client secret. This authentication method works by creating and using a signed, short-lived JWT assertion to authenticate the client to the OpenID provider.
+
+The benefits of this authentication method are:
+
+- The clients private key is never shared with anyone. The OpenID provider only needs to known the corresponding public certificate to validate the clients JWT assertions.
+- A signed JWT is only valid for 30 seconds and cannot be replayed, thus greatly reducing the risks of token theft or secrets being compromised.
+
+For more information on how to use certificate-based authentication, see the [README.md](https://github.com/fedamerd/msgraph-py/blob/main/README.md#certificate-based-authentication)
+
+### Added
+
+- Support for client assertion authentication method.
+
 ## [v1.3.1] - 2024-11-27
 
 This minor release aims to fix an unintended change to the default HTTP request timeout threshold after migrating to the `httpx` backend in [v1.2.0], which set a timeout of 5 seconds as the client default. This caused timeouts for certain long-running queries (e.g. `/auditLogs/signIns/`).
@@ -87,6 +102,7 @@ See the [README](https://github.com/fedamerd/msgraph-py/blob/main/README.md) for
 
 Found a bug or want to request a feature? Open a new issue using the [issue tracker](https://github.com/fedamerd/msgraph-py/issues).
 
+[v1.4.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.4.0
 [v1.3.1]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.3.1
 [v1.3.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.3.0
 [v1.2.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.2.0

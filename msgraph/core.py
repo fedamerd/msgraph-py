@@ -229,7 +229,16 @@ def _get_jwt_assertion(
     expires_in: int = 30,
 ) -> str:
     """
-    Returns a JWT signed with a private key.
+    Returns a signed JWT for use in client authentication.
+
+    The issuer parameter must be the client ID of the app in Entra ID.
+    The audience parameter must be the URL of the tenant's token endpoint.
+    The thumbprint parameter must be either a SHA-1 or SHA-256 thumbprint
+    of the certificate uploaded to the clients app registration in Entra ID.
+
+    The expires_in parameter defaults to 30 seconds and is added to the exp
+    claim in the JWT, expressing the epoch time when the JWT will expire.
+    This value should be kept reasonably short.
 
     Documentation:
     https://learn.microsoft.com/en-us/entra/identity-platform/certificate-credentials
