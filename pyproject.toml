@@ -10,7 +10,7 @@ name = "msgraph-py"
 dynamic = ["version"]
 dependencies = [
   "httpx[http2]",
-  "PyJWT",
+  "PyJWT[crypto]",
 ]
 authors = [
   { name="fedamerd" },
