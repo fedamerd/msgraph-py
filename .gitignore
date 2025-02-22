@@ -1,6 +1,18 @@
 # Local settings
 settings.json
 
+# Test files
+tests/
+*_test.py
+
+# Certificates / private keys
+certs/
+*.pem
+*.cer
+*.key
+*.pfx
+*.p12
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
