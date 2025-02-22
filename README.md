@@ -17,33 +17,33 @@ Some of the benefits of `msgraph-py` are:
 
 ### List of available functions
 
-#### Identity
+#### [Identity](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/identity.py)
 
-- [`get_user()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/identity.py#L12-L36)
-- [`get_user_risk()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/identity.py#L260-L285)
-- [`revoke_refresh_tokens()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/identity.py#L98-L107)
-- [`list_auth_methods()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/identity.py#L133-L142)
-- [`delete_auth_method()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/identity.py#L170-L182)
-- [`reset_strong_auth()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/identity.py#L227-L237)
-- [`get_signin()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/identity.py#L347-L370)
+- `get_user()`
+- `get_user_risk()`
+- `revoke_refresh_tokens()`
+- `list_auth_methods()`
+- `delete_auth_method()`
+- `reset_strong_auth()`
+- `get_signin()`
 
-#### Groups
+#### [Groups](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/groups.py)
 
-- [`get_group()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/groups.py#L12-L36)
-- [`list_group_members()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/groups.py#L100-L124)
-- [`add_group_member()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/groups.py#L183-L199)
-- [`remove_group_member()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/groups.py#L245-L258)
+- `get_group()`
+- `list_group_members()`
+- `add_group_member()`
+- `remove_group_member()`
 
-#### Devices
+#### [Devices](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/devices.py)
 
-- [`get_device()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/devices.py#L13-L37)
-- [`delete_device()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/devices.py#L101-L110)
-- [`list_owned_devices()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/devices.py#L136-L159)
-- [`get_laps_password()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/devices.py#L218-L231)
+- `get_device()`
+- `delete_device()`
+- `list_owned_devices()`
+- `get_laps_password()`
 
-#### Mail
+#### [Mail](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/mail.py)
 
-- [`send_mail()`](https://github.com/fedamerd/msgraph-py/blob/main/msgraph/mail.py#L18-L47)
+- `send_mail()`
 
 ## Getting Started
 
