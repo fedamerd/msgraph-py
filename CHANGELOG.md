@@ -1,5 +1,18 @@
 # Changelog
 
+## [v1.4.1] - 2025-02-22
+
+Minor release to fix import errors caused by a missing dependency in [v1.4.0].
+
+### Added
+
+- Missing cryptography dependency to `pyproject.toml` ([`0e63a2b`](https://github.com/fedamerd/msgraph-py/commit/0e63a2b))
+
+### Removed
+
+- `requirements.txt` (obsolete) ([`063a0a0`](https://github.com/fedamerd/msgraph-py/commit/063a0a0))
+- Broken links to function descriptions in `README.md` ([`f04cc94`](https://github.com/fedamerd/msgraph-py/commit/f04cc94))
+
 ## [v1.4.0] - 2025-02-17
 
 This release implements certificate-based authentication as an alternative to using a static client secret. This authentication method works by creating and using a signed, short-lived JWT assertion to authenticate the client to the OpenID provider.
@@ -102,6 +115,7 @@ See the [README](https://github.com/fedamerd/msgraph-py/blob/main/README.md) for
 
 Found a bug or want to request a feature? Open a new issue using the [issue tracker](https://github.com/fedamerd/msgraph-py/issues).
 
+[v1.4.1]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.4.1
 [v1.4.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.4.0
 [v1.3.1]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.3.1
 [v1.3.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.3.0
