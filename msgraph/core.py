@@ -3,6 +3,7 @@ import logging
 import uuid
 from base64 import urlsafe_b64encode
 from binascii import unhexlify
+from datetime import datetime
 from getpass import getpass
 from os import environ
 from pathlib import Path
@@ -61,10 +62,10 @@ def get_http_client() -> httpx.Client:
 
     global _http_client
     if _http_client is None:
-        logger.info("Initializing new HTTP client ..")
+        logger.debug("Initializing new HTTP client ..")
         _http_client = httpx.Client(http2=True, timeout=DEFAULT_TIMEOUT)
     else:
-        logger.info("Using existing HTTP client")
+        logger.debug("Using existing HTTP client")
     return _http_client
 
 
@@ -84,10 +85,11 @@ def get_token() -> str:
     global _token_cache
     if _token_cache:
         if _token_cache["exp"] >= time() + CLOCK_SKEW_SECONDS:
-            logger.info("Using cached access token")
+            logger.debug("Using cached access token")
             return _token_cache["jwt"]
         else:
-            logger.info("Cached access token has expired")
+            exp_datetime = datetime.fromtimestamp(_token_cache["exp"])
+            logger.info(f"Cached access token is about to expire at {exp_datetime}")
 
     (
         tenant_id,
@@ -107,11 +109,11 @@ def get_token() -> str:
     }
 
     if client_secret:
-        logger.info("Using client_secret to authenticate the client")
+        logger.debug("Using client_secret credentials")
         payload["client_secret"] = client_secret
 
     elif key_path or key_data:
-        logger.info("Using client_assertion to authenticate the client")
+        logger.debug("Using client_assertion credentials")
 
         func_params = {
             "key_passphrase": key_passphrase,
@@ -125,10 +127,12 @@ def get_token() -> str:
         key, cert = _get_key_and_cert(**func_params)
 
         if not thumbprint:
-            logger.debug("No thumbprint provided. Retrieving from certificate")
+            logger.debug("Retrieving thumbprint from certificate ..")
             thumbprint = cert.fingerprint(hashes.SHA256()).hex()
+        else:
+            logger.debug("Using provided thumbprint")
 
-        logger.debug(f"Thumbprint: {thumbprint}")
+        logger.debug(f"Certificate thumbprint: {thumbprint}")
 
         assertion_type = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
         jwt_assertion = _get_jwt_assertion(client_id, url, key, thumbprint)
@@ -182,7 +186,7 @@ def _get_config() -> tuple[str]:
 
         # If settings.py is initialized
         if settings.configured:
-            logger.info("Importing client configuration from django.conf.settings")
+            logger.debug("Importing client configuration from django.conf.settings")
             tenant_id = settings.AAD_TENANT_ID
             client_id = settings.AAD_CLIENT_ID
             client_secret = settings.AAD_CLIENT_SECRET
@@ -195,7 +199,7 @@ def _get_config() -> tuple[str]:
 
     # Django is not installed or not running
     except ImportError:
-        logger.info("Importing client configuration from os.environ")
+        logger.debug("Importing client configuration from os.environ")
         tenant_id = environ.get("AAD_TENANT_ID")
         client_id = environ.get("AAD_CLIENT_ID")
         client_secret = environ.get("AAD_CLIENT_SECRET")
@@ -343,6 +347,6 @@ def exit_handler():
 
     global _http_client
     if _http_client is not None:
-        logger.info("Closing HTTP client ..")
+        logger.debug("Closing HTTP client ..")
         _http_client.close()
         _http_client = None
