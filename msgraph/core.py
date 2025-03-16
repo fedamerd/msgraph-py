@@ -94,6 +94,7 @@ def get_token() -> str:
         client_id,
         client_secret,
         key_path,
+        key_data,
         key_passphrase,
         thumbprint,
     ) = _get_config()
@@ -109,15 +110,24 @@ def get_token() -> str:
         logger.info("Using client_secret to authenticate the client")
         payload["client_secret"] = client_secret
 
-    elif key_path:
+    elif key_path or key_data:
         logger.info("Using client_assertion to authenticate the client")
 
-        if not thumbprint:
-            logger.debug("No thumbprint provided. Will attempt to load certificate")
-            key, cert = _get_key_and_cert(key_path, key_passphrase, include_cert=True)
-            thumbprint = cert.fingerprint(hashes.SHA256()).hex()
+        func_params = {
+            "key_passphrase": key_passphrase,
+            "include_cert": True if not thumbprint else False,
+        }
+        if key_path:
+            func_params["key_path"] = key_path
         else:
-            key, _ = _get_key_and_cert(key_path, key_passphrase)
+            func_params["key_data"] = key_data
+
+        key, cert = _get_key_and_cert(**func_params)
+
+        if not thumbprint:
+            logger.debug("No thumbprint provided. Retrieving from certificate")
+            thumbprint = cert.fingerprint(hashes.SHA256()).hex()
+
         logger.debug(f"Thumbprint: {thumbprint}")
 
         assertion_type = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
@@ -128,7 +138,7 @@ def get_token() -> str:
 
     else:
         raise ValueError(
-            "Unknown client authentication method. No client_secret or key_path provided."
+            "Unknown client authentication method. No client_secret, key_path or key_data provided."
         )
 
     logger.info("Getting access token ..")
@@ -172,11 +182,12 @@ def _get_config() -> tuple[str]:
 
         # If settings.py is initialized
         if settings.configured:
-            logger.info("Importing client credentials from django.conf.settings")
+            logger.info("Importing client configuration from django.conf.settings")
             tenant_id = settings.AAD_TENANT_ID
             client_id = settings.AAD_CLIENT_ID
             client_secret = settings.AAD_CLIENT_SECRET
             key_path = settings.AAD_PRIVATE_KEY_PATH
+            key_data = settings.AAD_PRIVATE_KEY
             key_passphrase = settings.AAD_PRIVATE_KEY_PASSPHRASE
             thumbprint = settings.AAD_CERT_THUMBPRINT
         else:
@@ -184,31 +195,28 @@ def _get_config() -> tuple[str]:
 
     # Django is not installed or not running
     except ImportError:
-        logger.info("Importing client credentials from os.environ")
+        logger.info("Importing client configuration from os.environ")
         tenant_id = environ.get("AAD_TENANT_ID")
         client_id = environ.get("AAD_CLIENT_ID")
         client_secret = environ.get("AAD_CLIENT_SECRET")
         key_path = environ.get("AAD_PRIVATE_KEY_PATH")
+        key_data = environ.get("AAD_PRIVATE_KEY")
         key_passphrase = environ.get("AAD_PRIVATE_KEY_PASSPHRASE")
         thumbprint = environ.get("AAD_CERT_THUMBPRINT")
 
-    if client_secret and key_path:
+    if sum([bool(client_secret), bool(key_path), bool(key_data)]) > 1:
         raise ValueError(
-            "Ambiguous client authentication method. AAD_CLIENT_SECRET and AAD_PRIVATE_KEY_PATH are mutually exclusive."
-        )
-    elif any([key_passphrase, thumbprint]) and not key_path:
-        logger.warning(
-            "AAD_PRIVATE_KEY_PATH is not set. AAD_PRIVATE_KEY_PASSPHRASE and AAD_CERT_THUMBPRINT variables will be ignored."
+            "Ambiguous client credentials. AAD_CLIENT_SECRET, AAD_PRIVATE_KEY_PATH and AAD_PRIVATE_KEY are mutually exclusive."
         )
 
     if not tenant_id:
-        logger.info("AAD_TENANT_ID missing or empty")
+        logger.warning("No directory (tenant) ID provided")
         tenant_id = input("AAD_TENANT_ID: ")
     if not client_id:
-        logger.info("AAD_CLIENT_ID missing or empty")
+        logger.warning("No application (client) ID provided")
         client_id = input("AAD_CLIENT_ID: ")
-    if not client_secret and not key_path:
-        logger.info("AAD_CLIENT_SECRET and AAD_PRIVATE_KEY_PATH missing or empty")
+    if not any([client_secret, key_path, key_data]):
+        logger.warning("No client credentials provided")
         client_secret = getpass("AAD_CLIENT_SECRET: ")
 
     return (
@@ -216,6 +224,7 @@ def _get_config() -> tuple[str]:
         client_id,
         client_secret,
         key_path,
+        key_data,
         key_passphrase,
         thumbprint,
     )
@@ -274,33 +283,42 @@ def _get_jwt_assertion(
 
 
 def _get_key_and_cert(
-    key_path: str,
+    key_path: str = None,
+    key_data: str = None,
     key_passphrase: str = None,
     include_cert: bool = False,
 ) -> tuple[PrivateKeyTypes, Certificate | None]:
     """
-    Returns the private key from the specified key_path and optionally
-    the X.509 certificate as a tuple. The include_cert parameter is False
-    by default and requires the certificate to be included in the same
-    file as the private key.
+    Returns the private key from the specified key_path or key_data,
+    and optionally the X.509 certificate as a tuple. The include_cert
+    parameter is False by default and requires the certificate to be
+    bundled together with the private key.
 
     The certificate is used to automatically retrieve the thumbprint,
     as this is required for the x5t#S256 header when constructing the
     JWT assertion later. MS Graph uses this as a reference to the
     certificate uploaded to the clients app registration in Entra ID.
 
-    Currently only supports PKCS#12 and PEM formats.
+    Currently only supports PKCS#12 (file only) and PEM formats.
 
     """
 
-    with open(key_path, "rb") as f:
-        logger.debug(f"Reading key_bytes from {key_path}")
-        key_bytes = f.read()
+    if key_path:
+        logger.debug(f"Reading key_bytes from key_path: '{key_path}'")
+        with open(key_path, "rb") as f:
+            key_bytes = f.read()
+    elif key_data:
+        logger.debug("Reading key_bytes from key_data: [redacted]")
+        key_bytes = key_data.encode()
+    else:
+        raise ValueError("Either key_path or key_data must be specified")
 
     encoded_passphrase = key_passphrase.encode() if key_passphrase else None
+    logger.debug(f"key_passphrase provided: {key_passphrase is not None}")
+    logger.debug(f"include_cert: {include_cert}")
 
     # Checks the file extension to determine if the key is in PKCS#12 format
-    if Path(key_path).suffix in [".pfx", ".p12"]:
+    if key_path and Path(key_path).suffix in [".pfx", ".p12"]:
         logger.debug("Using PKCS#12 format to load the private key")
         key, cert, _ = pkcs12.load_key_and_certificates(key_bytes, encoded_passphrase)
 
