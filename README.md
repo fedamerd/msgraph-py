@@ -110,15 +110,25 @@ Remove `AAD_CLIENT_SECRET` from your configuration and set the following environ
 ```python
 os.environ["AAD_PRIVATE_KEY_PATH"] = "path/to/private_key.pem"
 
-# Required if the private key file is password-protected
+# Alternatively pass the key data directly (only PEM-format supported)
+os.environ["AAD_PRIVATE_KEY"] = "-----BEGIN PRIVATE KEY-----...-----END PRIVATE KEY-----"
+
+# Required if the private key is password-protected
 os.environ["AAD_PRIVATE_KEY_PASSPHRASE"] = "key-passphrase-value"
 
-# Required if the private key file does not contain a X.509 certificate
+# Required if the private key does not contain a X.509 certificate
 os.environ["AAD_CERT_THUMBPRINT"] = "cert-thumbprint-value"
 ```
 
 > [!NOTE]  
-> PKCS#12 format (`.pfx` or `.p12`) is also supported in addition to PEM. If the certificate and private key are bundled together in the same file, you may omit setting `AAD_CERT_THUMBPRINT`, as the thumbprint will be retrieved from the certificate automatically.
+> You may omit setting `AAD_CERT_THUMBPRINT` if the certificate and private key are bundled together, as the required thumbprint will be retrieved from the certificate automatically at runtime.
+>
+> PKCS#12 format (`.pfx` or `.p12`) is also supported in addition to PEM when using `AAD_PRIVATE_KEY_PATH`.
+> In order to convert a PEM-formatted private key and certificate to a single PKCS#12-formatted file, you can use the following command:
+>
+> ```bash
+> openssl pkcs12 -inkey private-key.pem -in certificate.pem -export -out bundled-key-cert.pfx
+> ```
 
 ## Usage examples
 
