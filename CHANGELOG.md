@@ -1,5 +1,19 @@
 # Changelog
 
+## [v1.5.0] - 2026-03-14
+
+This release expands on certificate-based authentication by adding support for passing the private key data (and optionally certificate) directly instead of a file path. Can configured by setting `AAD_PRIVATE_KEY`, either as an environment variable or in the projects `settings.py`. Only PEM-format is supported.
+
+### Added
+
+- Support for reading the PEM private key for client assertion auth directly from env variable `AAD_PRIVATE_KEY` ([`d5f23e2`](https://github.com/fedamerd/msgraph-py/commit/d5f23e2))
+
+### Changed
+
+- Reduced log level from info to debug for several messages in `core.py` ([`3f8ca70`](https://github.com/fedamerd/msgraph-py/commit/3f8ca70))
+- GitHub Actions CI/CD `release.yml` workflow updated based on the latest [Python Packaging User Guide](https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/). Distribution signing (digital attestation) is now integrated into the `pypa/gh-action-pypi-publish` step ([`dba16f5`](https://github.com/fedamerd/msgraph-py/commit/dba16f5))
+- Updated `README.md` ([`fe0be63`](https://github.com/fedamerd/msgraph-py/commit/fe0be63))
+
 ## [v1.4.1] - 2025-02-22
 
 Minor release to fix import errors caused by a missing dependency in [v1.4.0].
@@ -115,6 +129,7 @@ See the [README](https://github.com/fedamerd/msgraph-py/blob/main/README.md) for
 
 Found a bug or want to request a feature? Open a new issue using the [issue tracker](https://github.com/fedamerd/msgraph-py/issues).
 
+[v1.5.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.5.0
 [v1.4.1]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.4.1
 [v1.4.0]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.4.0
 [v1.3.1]: https://github.com/fedamerd/msgraph-py/releases/tag/v1.3.1
